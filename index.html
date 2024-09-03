@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Character Generator</title>
     <style>
+    
+    .button-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px; /* Adjust the spacing between buttons */
+}
+
+.input-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -20,9 +32,9 @@
             align-items: center;
         }
         .stat-box input[type="number"], .input-box input[type="text"], .inventory input[type="text"] {
-            width: 50px;
+            width: 70px;
             text-align: center;
-            margin-top: 5px;
+            margin-top: 10px;
         }
         .stat-box select {
             margin-top: 5px;
@@ -68,24 +80,131 @@
             }
 	    generateOutput();
         }
-	// Add event listener to update output when XP changes.
-	document.addEventListener('DOMContentLoaded', () => {
-	   document.getElementById('xp').addEventListener('change', generateOutput);
-	});
+        
+  //listeners
+  
+  // Add event listener to update output when input changes
+document.addEventListener('DOMContentLoaded', () => {
+    // List of element IDs to attach the event listener to
+    const ids = [
+        'xp', 'level', 'hp', 'ap',
+        'strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma',
+        'career1', 'career2', 'personality', 'appearance', 'goals', 'weaknesses', 'mannerisms',
+        'name', 'surname-1', 'surname-2', 'epithet'
+    ];
 
-        // Add event listener to update XP when level changes
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('level').addEventListener('change', updateXP);
+    // Loop through each ID and add the event listener
+    ids.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', generateOutput);
+        }
+    });
+});
+        
+	// Add event listener to update output when XP changes.
+document.addEventListener('DOMContentLoaded', () => {
+    // List of element IDs to attach the event listener to
+    const ids = ['intelligence'];
+
+    // Loop through each ID and add the event listener
+    ids.forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            if (document.getElementById('level').value == 1) {
+                document.getElementById('lvl1-int').value = document.getElementById(id).value;
+                selectRandomPremadeSpells();
+                initializeInventory();
+            }
         });
+    });
+});
+
+// Function to handle changes in the level input
+function onLevelChange() {
+    const level = parseInt(document.getElementById('level').value);
+    const stats = document.querySelectorAll('.stat-box input[type="number"]');
+
+    // Check if the level has increased
+    if (level > previousLevel) {
+        addLevelPoints(2, stats);
+    } else {
+      rollStats();
+    }
+    
+    previousLevel = level; // Update the previous level
+    updateXP();
+}
+
+let previousLevel = 1; // Initialize with the default level value
+
+// Add event listener to the level input field
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('level').addEventListener('change', onLevelChange);
+    // Add event listeners for other inputs if necessary
+});
+	
+document.addEventListener('DOMContentLoaded', () => {
+    const statInputs = document.querySelectorAll('.stat-input');
+    statInputs.forEach(input => {
+        input.addEventListener('change', generateOutput);
+    });
+});
 
 // Helper function to roll dice
-function rollDice(sides, count) {
+function rollDice(sides, count, returnTotal) {
+    let array = [];
     let total = 0;
     for (let i = 0; i < count; i++) {
-        total += Math.floor(Math.random() * sides) + 1;
+        let roll = Math.floor(Math.random() * sides) + 1;
+        total += roll;
+        array.push(roll);
     }
-    return total;
+    // Sort the array in descending order
+    array.sort((a, b) => a - b);
+    console.log("Dice rolls: ", array);
+    if (!returnTotal) {
+    return array; // Return the sorted array  
+    } else {
+      return total;
+    }
+    
 }
+
+// Generates a default number of coin.
+function rollCoin() {
+  let dice = rollDice(6, 3, true);
+  let coins = dice * 10;
+  document.getElementById('coin').value = coins;
+  generateOutput();
+}
+
+// Function to add additional points for each level.
+function addLevelPoints(level, stats) {
+    if (level <= 1) {
+        return;
+    }
+    const additionalPoints = level * 3 - 3;  // Points to add for levels above 1
+    
+    let threeStats = [];
+
+    for (let i = 0; i < additionalPoints; i++) {
+        // If the threeStats array is empty, fill it with three unique random stats
+        if (threeStats.length <= 0) {
+            const indices = new Set();
+            while (indices.size < 3) {
+                indices.add(Math.floor(Math.random() * stats.length));
+            }
+            threeStats = Array.from(indices);
+        }
+
+        // Pick a stat from the threeStats array, add a point to it, and remove it from the array
+        const randomIndex = Math.floor(Math.random() * threeStats.length);
+        const statIndex = threeStats[randomIndex];
+        stats[statIndex].value = parseInt(stats[statIndex].value) + 1;
+        threeStats.splice(randomIndex, 1);  // Remove the used stat
+    }
+}
+
 
 // Function to handle rolling stats
 function rollStats() {
@@ -101,16 +220,19 @@ function rollStats() {
     } else if (method === '3d4') {
         roll3d4Stats();
     } else if (method === '6d6') {
-        stats.forEach(stat => stat.value = rollDice(6, 1));  // Roll d6
+        stats.forEach(stat => stat.value = rollDice(6, 6, false)[0]);  // Roll d6
     }
-
     updateInventory();
+    document.getElementById('lvl1-int').value = document.getElementById('intelligence').value;
+    addLevelPoints(level, stats);
+    selectRandomPremadeSpells();
+    generateOutput();
 }
 
 // Function to roll stats using the Standard method
 function rollStandardStats(level) {
     const stats = document.querySelectorAll('.stat-box input[type="number"]');
-    const points = 3 + level - 1;  // 3 points + 1 point per level except level 1
+    const points = 3;  // 3 points at first level. Additional points added through addLevelPoints
 
     // Randomly distribute points
     for (let i = 0; i < points; i++) {
@@ -124,7 +246,6 @@ function roll3d4Stats() {
     const stats = document.querySelectorAll('.stat-box input[type="number"]');
     const selectedIndices = [];
     const level = parseInt(document.getElementById('level').value);
-    const additionalPoints = Math.max(0, level - 1);  // Points to add for levels above 1
 
     // Reset all stats to 0 before rolling
     stats.forEach(stat => stat.value = 0);
@@ -134,22 +255,62 @@ function roll3d4Stats() {
         const index = Math.floor(Math.random() * stats.length);
         if (!selectedIndices.includes(index)) {
             selectedIndices.push(index);
-            stats[index].value = rollDice(4, 1);  // Roll d4
+            stats[index].value = rollDice(4, 3, false)[0];  // Roll d4
         }
     }
-
-    // Distribute additional points to any of the six stats
-    for (let i = 0; i < additionalPoints; i++) {
-        const randomIndex = Math.floor(Math.random() * stats.length);
-        stats[randomIndex].value = parseInt(stats[randomIndex].value) + 1;
-    }
+    generateOutput();
+    
 }
 
+function initializeInventory(extraItems = []) {
+    // Clear the hidden inventory
+    document.getElementById('hiddenInventory').value = '';
+
+    // Get career values
+    const career1 = document.getElementById('career1').value;
+    const career2 = document.getElementById('career2').value;
+
+    // Get items for both careers
+    let careerItems1 = getCareerItems(career1);
+    let careerItems2 = getCareerItems(career2);
+
+    // Get and process held spells
+    let heldSpells = document.getElementById('held-spells').value;
+    let heldSpellsArray = heldSpells ? heldSpells.split('|') : [];
+
+    // Add items to the hidden inventory
+    careerItems1.forEach(item => addItemToInventory(item));
+    careerItems2.forEach(item => addItemToInventory(item));
+    heldSpellsArray.forEach(item => addItemToInventory(item));
+    extraItems.forEach(item => addItemToInventory(item));
+}
+
+  // Function to add an item to the inventory
+  function addItemToInventory(item) {
+    const hiddenInventory = document.getElementById('hiddenInventory');
+    let inventoryItems = hiddenInventory.value ? hiddenInventory.value.split(',') : [];
+    inventoryItems.push(item);
+    hiddenInventory.value = inventoryItems.join(',');
+}
+  
+  // Function to remove an item from the inventory
+  function removeItemFromInventory(item) {
+      const hiddenInventory = document.getElementById('hiddenInventory');
+      let inventoryItems = hiddenInventory.value.split(',');
+      inventoryItems = inventoryItems.filter(i => i.trim().toLowerCase() !== item.trim().toLowerCase());
+      hiddenInventory.value = inventoryItems.join(',');
+  }
+  
+  // Function to capitalize and format the inventory items
+  function formatInventoryItems(inventoryItems) {
+      return inventoryItems.map(item => `- ${item.trim().charAt(0).toUpperCase() + item.trim().slice(1)}`);
+  }
 
 function rollHealth() {
     const level = parseInt(document.getElementById('level').value);
-    const hp = rollDice(6, level);
+    const hp = rollDice(6, level, true);
     document.getElementById('hp').value = hp;
+    generateOutput();
 }
 
 function updateInventory() {
@@ -162,6 +323,59 @@ function updateInventory() {
         const slot = document.createElement('input');
         slot.type = 'text';
         inventoryContainer.appendChild(slot);
+	
+    }
+}
+
+// Select random spells for spellcasters.
+function selectRandomPremadeSpells() {
+    try {
+        // Get the number of spells to select
+        const spellCount = parseInt(document.getElementById('lvl1-int').value, 10);
+        if (isNaN(spellCount) || spellCount <= 0) {
+            document.getElementById('held-spells').value = "";
+            console.error("Invalid spell count:", spellCount);
+            return; // Exit if spellCount is invalid
+        }
+
+        // Get the premade spells select element
+        const table = document.getElementById('premade-spells-table');
+        if (!table || !table.options) {
+            console.error("Premade spells table not found or has no options.");
+            return; // Exit if the table is not found or has no options
+        }
+
+        // Get the list of options (spells)
+        const options = Array.from(table.options);
+        if (options.length === 0) {
+            console.error("No options found in the premade spells table.");
+            return; // Exit if no options are available
+        }
+
+        // Initialize spell list
+        let spellList = "";
+
+        // Ensure we don't try to select more spells than available
+        const numSpellsToSelect = Math.min(spellCount, options.length);
+
+        for (let i = 0; i < numSpellsToSelect; i++) {
+            // Generate a random index
+            const randomIndex = Math.floor(Math.random() * options.length);
+            // Push the randomly selected spell text into the spellList array
+            spellList += (i > 0 ? "|" : "") + options[randomIndex].text;
+        }
+
+        // Set the spell list value
+        spellList = spellList.replace(/,/g, '__COMMA__');
+        document.getElementById('held-spells').value = spellList;
+        
+        // Generate the output
+        generateOutput();
+
+        return spellList;
+    } catch (error) {
+        console.error("Error in selectRandomPremadeSpells:", error);
+        alert("An error occurred while selecting spells. Check the console for details.");
     }
 }
 
@@ -173,34 +387,31 @@ function selectRandomOption(tableId, outputId) {
     generateOutput();
 }
 
-function generateRandomHeight(minFeet, minInches) {
-    // Ensure random feet are at least minFeet
-    const randomFeet = Math.floor(Math.random() * (6 - minFeet + 1)) + minFeet;
-    // Ensure random inches are between 0 and 11
-    const randomInches = Math.floor(Math.random() * 12);
-
-    document.getElementById('height').value = randomFeet + "' " + randomInches + '"';
-}
-
 function generateAll() {
+    selectRandomOption('career-table', 'career1');
+    selectRandomOption('career-table', 'career2');
+    
     rollStats();
+    selectRandomPremadeSpells();
     rollHealth();
 
     selectRandomOption('name-table', 'name');
-    selectRandomOption('career-table', 'career1');
-    selectRandomOption('career-table', 'career2');
+    selectRandomOption('surname-1-table', 'surname-1')
+    selectRandomOption('surname-2-table', 'surname-2')
+    selectRandomOption('epithet-table', 'epithet');
     selectRandomOption('personality-table', 'personality');
     selectRandomOption('appearance-table', 'appearance');
-    generateRandomHeight(4, 0);
     selectRandomOption('goals-table', 'goals');
     selectRandomOption('weaknesses-table', 'weaknesses');
     selectRandomOption('mannerisms-table', 'mannerisms');
+    rollCoin();
     updateXP();
     generateOutput();
 }
 
 function generateOutput() {
     const name = document.getElementById('name').value;
+    const epithet = document.getElementById('epithet').value;
     const hp = document.getElementById('hp').value;
     const xp = document.getElementById('xp').value;
     const ap = document.getElementById('ap').value;
@@ -213,42 +424,94 @@ function generateOutput() {
     const wisdom = document.getElementById('wisdom').value;
     const charisma = document.getElementById('charisma').value;
 
-    const career1 = document.getElementById('career1').value;
-    const career2 = document.getElementById('career2').value;
+    const career1 = document.getElementById('career1').value.split(":")[0];
+    const career2 = document.getElementById('career2').value.split(":")[0];
 
     const personality = document.getElementById('personality').value;
     const appearance = document.getElementById('appearance').value;
-    const height = document.getElementById('height').value;
     const goals = document.getElementById('goals').value;
     const weaknesses = document.getElementById('weaknesses').value;
     const mannerisms = document.getElementById('mannerisms').value;
+    const surname1 = document.getElementById('surname-1').value;
+    const surname2 = document.getElementById('surname-2').value;
 
-    const output = `
-Name: ${name}
-HP: ${hp}
-XP: ${xp}
-AP: ${ap}
+    // initialize the inventory
+    const startingItems = [
+    "2 rations",
+    "a 50’ rope",
+    "2 torches",
+    "helmet",
+    "breastplate",
+    "Leg Plate",
+    "shield",
+    "Gambeson",
+    "arm plate",
+    "mail shirt",
+    "two handed weapons",
+    "one handed weapons",
+    "sling",
+    "bow",
+    "a quiver of 20 arrows"
+    ];
+    initializeInventory();
+    
+    const coins = document.getElementById('coin').value;
+    const inventoryItems = document.getElementById('hiddenInventory').value.split(',');
+    const maxInventorySlots = 10 + parseInt(constitution);
+    const freeSlots = Math.max(-20, maxInventorySlots - inventoryItems.length);
+    const hiddenInventory = document.getElementById('hiddenInventory').value;
+    const heldSpells = document.getElementById('held-spells').value;
+    
+// Modify inventoryItems to capitalize and add a dash
+let formattedInventoryItems = inventoryItems.map(item => {
+    return `- ${item.charAt(0).toUpperCase() + item.slice(1)}`;
+});
+let formattedStartingItems = startingItems.map(item => {
+  return `- ${item.charAt(0).toUpperCase() + item.slice(1)}\n`;
+}).join('');
+
+ // Join formatted items into a single string
+    let formattedInventoryString = formattedInventoryItems.join(', \n');
+
+    // Replace __COMMA__ with actual comma
+    formattedInventoryString = formattedInventoryString.replace(/__COMMA__/g, ',');
+
+// Update your output template to use formattedInventoryItems
+const output = `
+Name: ${name} ${surname1}${surname2} the ${epithet}
+HP: ${hp} XP: ${xp} AP: ${ap}
 Level: ${level}
 Stats:
-    Strength: ${strength}
-    Dexterity: ${dexterity}
-    Constitution: ${constitution}
-    Intelligence: ${intelligence}
-    Wisdom: ${wisdom}
-    Charisma: ${charisma}
+    STR: ${strength} DEX: ${dexterity} CON: ${constitution}
+    INT: ${intelligence} WIS: ${wisdom} CHA: ${charisma}
 Careers:
     1. ${career1}
     2. ${career2}
-Personality Traits: ${personality}
 Appearance Details: ${appearance}
-Height: ${height}
+Personality Traits: ${personality}
 Goals: ${goals}
 Weaknesses: ${weaknesses}
 Mannerisms: ${mannerisms}
-    `;
 
-    document.getElementById('output').value = output.trim();
+Coin: ${coins}
+Inventory: 
+${formattedInventoryString}
+Free Slots: ${freeSlots}
+
+Characters may begin with any of the following which they have room to carry:
+${formattedStartingItems}
+`;
+
+document.getElementById('output').value = output.trim();
 }
+
+function getCareerItems(career) {
+    if (career.includes(':')) {
+        return career.split(':')[1].split(', ').map(item => item.trim());
+    }
+    return [career.trim()];
+}
+
     </script>
 </head>
 <body>
@@ -256,62 +519,32 @@ Mannerisms: ${mannerisms}
     <div class="stat-boxes">
         <div class="stat-box">
             <label for="strength">STRENGTH</label>
-            <input type="number" id="strength" value="0">
-            <select id="strength-tick">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+            <input type="number" id="strength" value="0" class="stat-input">
             </select>
         </div>
         <div class="stat-box">
             <label for="dexterity">DEXTERITY</label>
-            <input type="number" id="dexterity" value="0">
-            <select id="dexterity-tick">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+            <input type="number" id="dexterity" value="0" class="stat-input">
             </select>
         </div>
         <div class="stat-box">
             <label for="constitution">CONSTITUTION</label>
-            <input type="number" id="constitution" value="0" onchange="updateInventory()">
-            <select id="constitution-tick">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+            <input type="number" id="constitution" value="0" onchange="updateInventory()" class="stat-input">
             </select>
         </div>
         <div class="stat-box">
             <label for="intelligence">INTELLIGENCE</label>
-            <input type="number" id="intelligence" value="0">
-            <select id="intelligence-tick">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+            <input type="number" id="intelligence" value="0" class="stat-input">
             </select>
         </div>
         <div class="stat-box">
             <label for="wisdom">WISDOM</label>
-            <input type="number" id="wisdom" value="0">
-            <select id="wisdom-tick">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+            <input type="number" id="wisdom" value="0" class="stat-input">
             </select>
         </div>
         <div class="stat-box">
             <label for="charisma">CHARISMA</label>
-            <input type="number" id="charisma" value="0">
-            <select id="charisma-tick">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+            <input type="number" id="charisma" value="0" class="stat-input">
             </select>
         </div>
     </div>
@@ -344,15 +577,52 @@ Mannerisms: ${mannerisms}
         </div>
         <div class="input-box">
             <label for="level">LEVEL</label>
-            <input type="number" id="level" value="1">
+            <input type="number" id="level" value="1" min="1">
         </div>
     </div>
+    <div class="hidden-values">
+      <label for="held-items" style="visibility: hidden;">items</label>
+      <input type="text" id="held-items" value="" hidden="">
+    </div>
+    <div class="hidden-values">
+      <label for="lvl1-int" style="visibility: hidden;">lvl1-int</label>
+      <input type="number" id="lvl1-int" value="" hidden="">
+    </div>
 
+
+    <!-- Generate All Button -->
+    <button onclick="generateAll()">Generate All</button>
+
+    <!-- Inventory -->
+    <h3>Character Generator</h3>
+    <a href="https://blog.d4caltrops.com/2022/05/d100-x-4-bynames-sobriquets-and-epithets.html">Epithets sourced from the amazing d4 caltrops!</a>
+    <p><a href="https://questingblog.com/knave-2e/">Tables from Ben Milton's fantastic open-ended RPG game, Knave2e.</a></p>
+    
+    <div id="inventory-container" class="inventory" style="display: none;"></div>
+    <input type="hidden" id="hiddenInventory" value=""/>
+    <!-- Output Text Box -->
+    <textarea id="output" class="output-box"></textarea>
     <!-- Random Tables -->
+    <div class="button-grid">
     <div class="input-box">
         <label for="name">Name:</label>
         <input type="text" id="name">
         <button onclick="selectRandomOption('name-table', 'name')">Roll Name</button>
+    </div>
+    <div class="input-box">
+        <label for="surname-1">Surname-1:</label>
+        <input type="text" id="surname-1">
+        <button onclick="selectRandomOption('surname-1-table', 'surname-1')">Roll Surname Prefix</button>
+    </div>
+    <div class="input-box">
+        <label for="surname-2">Surname-2:</label>
+        <input type="text" id="surname-2">
+        <button onclick="selectRandomOption('surname-2-table', 'surname-2')">Roll Surname Suffix</button>
+    </div>
+        <div class="input-box">
+        <label for="epithet">Epithet</label>
+        <input type="text" id="epithet">
+        <button onclick="selectRandomOption('epithet-table', 'epithet')">Roll Epithet</button>
     </div>
     <div class="input-box">
         <label for="career1">Career 1:</label>
@@ -374,10 +644,15 @@ Mannerisms: ${mannerisms}
         <input type="text" id="appearance">
         <button onclick="selectRandomOption('appearance-table', 'appearance')">Roll Appearance</button>
     </div>
-    <div class="input-box">
-        <label for="height">Height:</label>
-        <input type="text" id="height">
-        <button onclick="generateRandomHeight()">Roll Height</button>
+    <div class="input-box" style="display:none;">
+        <label for="premade-spells">Spells</label>
+        <input type="array" id="premade-spells">
+        <button onclick="selectRandomPremadeSpells()">Roll Spells</button>
+    </div>
+        <div class="input-box" style="display:none;">
+        <label for="held-spells">Held Spells</label>
+        <input type="text" id="held-spells">
+        <button onclick="selectRandomPremadeSpells()">Roll Premade Spells</button>
     </div>
     <div class="input-box">
         <label for="goals">Goals:</label>
@@ -394,16 +669,12 @@ Mannerisms: ${mannerisms}
         <input type="text" id="mannerisms">
         <button onclick="selectRandomOption('mannerisms-table', 'mannerisms')">Roll Mannerisms</button>
     </div>
-
-    <!-- Generate All Button -->
-    <button onclick="generateAll()">Generate All</button>
-
-    <!-- Inventory -->
-    <h3>Inventory</h3>
-    <div id="inventory-container" class="inventory"></div>
-
-    <!-- Output Text Box -->
-    <textarea id="output" class="output-box" readonly></textarea>
+    <div class="input-box">
+        <label for="coins">Coins:</label>
+        <input type="number" id="coin">
+        <button onclick="rollCoin()">Roll for Coin</button>
+    </div>
+    </div>
 
 <!-- Random Tables (Hidden) -->
 <select id="career-table" style="display:none;">
@@ -467,7 +738,7 @@ Mannerisms: ${mannerisms}
     <option value="Mason">Mason: chisel, hammer, chalk</option>
     <option value="Merchant">Merchant: scales, strongbox, bag of spice</option>
     <option value="Miner">Miner: pickaxe, lantern, pet canary</option>
-    <option value="Musician">Musician: 3 instruments</option>
+    <option value="Musician">Musician: An instrument, an instrument, an instrument</option>
     <option value="Naturalist">Naturalist: fossil, insect case, geode</option>
     <option value="Officer">Officer: shoe polish, medal, spyglass</option>
     <option value="Oracle">Oracle: tea leaves, tarot deck, crystal</option>
@@ -509,209 +780,853 @@ Mannerisms: ${mannerisms}
     <option value="Woodcutter">Woodcutter: axe, firewood, 50’ rope</option>
 </select>
 
+<select id="surname-1-table" style="display:none;">
+  <option value="Adder">Adder</option>
+  <option value="Apple">Apple</option>
+  <option value="Ash">Ash</option>
+  <option value="Bab">Bab</option>
+  <option value="Bag">Bag</option>
+  <option value="Bar">Bar</option>
+  <option value="Barrow">Barrow</option>
+  <option value="Basker">Basker</option>
+  <option value="Beau">Beau</option>
+  <option value="Beetle">Beetle</option>
+  <option value="Berry">Berry</option>
+  <option value="Bird">Bird</option>
+  <option value="Brandy">Brandy</option>
+  <option value="Bright">Bright</option>
+  <option value="Brindle">Brindle</option>
+  <option value="Bull">Bull</option>
+  <option value="Bux">Bux</option>
+  <option value="Caven">Caven</option>
+  <option value="Chelten">Chelten</option>
+  <option value="Chester">Chester</option>
+  <option value="Chuff">Chuff</option>
+  <option value="Chum">Chum</option>
+  <option value="Clod">Clod</option>
+  <option value="Cobble">Cobble</option>
+  <option value="Cotten">Cotten</option>
+  <option value="Cress">Cress</option>
+  <option value="Crom">Crom</option>
+  <option value="Cumber">Cumber</option>
+  <option value="Dela">Dela</option>
+  <option value="Dig">Dig</option>
+  <option value="Draw">Draw</option>
+  <option value="Dreg">Dreg</option>
+  <option value="Drol">Drol</option>
+  <option value="Dun">Dun</option>
+  <option value="Even">Even</option>
+  <option value="Ever">Ever</option>
+  <option value="Fair">Fair</option>
+  <option value="Fallow">Fallow</option>
+  <option value="Farthing">Farthing</option>
+  <option value="Feather">Feather</option>
+  <option value="Ferns">Ferns</option>
+  <option value="Fox">Fox</option>
+  <option value="Gam">Gam</option>
+  <option value="Gird">Gird</option>
+  <option value="Gos">Gos</option>
+  <option value="Grey">Grey</option>
+  <option value="Grim">Grim</option>
+  <option value="Half">Half</option>
+  <option value="Hard">Hard</option>
+  <option value="Harrow">Harrow</option>
+  <option value="Hart">Hart</option>
+  <option value="Haver">Haver</option>
+  <option value="Hedge">Hedge</option>
+  <option value="Hither">Hither</option>
+  <option value="Holly">Holly</option>
+  <option value="Honey">Honey</option>
+  <option value="Horn">Horn</option>
+  <option value="Kettle">Kettle</option>
+  <option value="Kings">Kings</option>
+  <option value="Little">Little</option>
+  <option value="Long">Long</option>
+  <option value="Love">Love</option>
+  <option value="Middle">Middle</option>
+  <option value="Mug">Mug</option>
+  <option value="Nether">Nether</option>
+  <option value="Never">Never</option>
+  <option value="Obling">Obling</option>
+  <option value="Pember">Pember</option>
+  <option value="Penning">Penning</option>
+  <option value="Pens">Pens</option>
+  <option value="Pinker">Pinker</option>
+  <option value="Porten">Porten</option>
+  <option value="Quill">Quill</option>
+  <option value="Rath">Rath</option>
+  <option value="Sack">Sack</option>
+  <option value="Sallow">Sallow</option>
+  <option value="Salt">Salt</option>
+  <option value="Scor">Scor</option>
+  <option value="Sedge">Sedge</option>
+  <option value="Silver">Silver</option>
+  <option value="Slither">Slither</option>
+  <option value="Smit">Smit</option>
+  <option value="Snod">Snod</option>
+  <option value="Souther">Souther</option>
+  <option value="Stew">Stew</option>
+  <option value="Stir">Stir</option>
+  <option value="Swine">Swine</option>
+  <option value="Tar">Tar</option>
+  <option value="Temple">Temple</option>
+  <option value="Tide">Tide</option>
+  <option value="Tread">Tread</option>
+  <option value="Under">Under</option>
+  <option value="Vander">Vander</option>
+  <option value="Weather">Weather</option>
+  <option value="Wester">Wester</option>
+  <option value="Wex">Wex</option>
+  <option value="Whit">Whit</option>
+  <option value="Wither">Wither</option>
+  <option value="Withing">Withing</option>
+  <option value="Wy">Wy</option>
+</select>
+
+<select id="surname-2-table" style="display:none;">
+  <option value="bald">bald</option>
+  <option value="barrow">barrow</option>
+  <option value="batch">batch</option>
+  <option value="beck">beck</option>
+  <option value="blood">blood</option>
+  <option value="bold">bold</option>
+  <option value="bone">bone</option>
+  <option value="bottle">bottle</option>
+  <option value="bottom">bottom</option>
+  <option value="bridge">bridge</option>
+  <option value="buck">buck</option>
+  <option value="burn">burn</option>
+  <option value="bury">bury</option>
+  <option value="by">by</option>
+  <option value="caster">caster</option>
+  <option value="castle">castle</option>
+  <option value="chester">chester</option>
+  <option value="child">child</option>
+  <option value="church">church</option>
+  <option value="cliff">cliff</option>
+  <option value="cloth">cloth</option>
+  <option value="coat">coat</option>
+  <option value="combe">combe</option>
+  <option value="cott">cott</option>
+  <option value="dale">dale</option>
+  <option value="dish">dish</option>
+  <option value="ditch">ditch</option>
+  <option value="down">down</option>
+  <option value="fax">fax</option>
+  <option value="feld">feld</option>
+  <option value="fent">fent</option>
+  <option value="fer">fer</option>
+  <option value="field">field</option>
+  <option value="foot">foot</option>
+  <option value="force">force</option>
+  <option value="fort">fort</option>
+  <option value="fry">fry</option>
+  <option value="gale">gale</option>
+  <option value="grass">grass</option>
+  <option value="grave">grave</option>
+  <option value="green">green</option>
+  <option value="grove">grove</option>
+  <option value="ham">ham</option>
+  <option value="hill">hill</option>
+  <option value="hope">hope</option>
+  <option value="lack">lack</option>
+  <option value="lain">lain</option>
+  <option value="land">land</option>
+  <option value="less">less</option>
+  <option value="lin">lin</option>
+  <option value="ling">ling</option>
+  <option value="lish">lish</option>
+  <option value="lock">lock</option>
+  <option value="long">long</option>
+  <option value="low">low</option>
+  <option value="ly">ly</option>
+  <option value="man">man</option>
+  <option value="march">march</option>
+  <option value="mark">mark</option>
+  <option value="marl">marl</option>
+  <option value="marsh">marsh</option>
+  <option value="mass">mass</option>
+  <option value="meer">meer</option>
+  <option value="mond">mond</option>
+  <option value="mont">mont</option>
+  <option value="mor">mor</option>
+  <option value="morn">morn</option>
+  <option value="nick">nick</option>
+  <option value="ny">ny</option>
+  <option value="port">port</option>
+  <option value="ridge">ridge</option>
+  <option value="row">row</option>
+  <option value="sea">sea</option>
+  <option value="set">set</option>
+  <option value="shot">shot</option>
+  <option value="sop">sop</option>
+  <option value="spoon">spoon</option>
+  <option value="staff">staff</option>
+  <option value="stoke">stoke</option>
+  <option value="stone">stone</option>
+  <option value="ten">ten</option>
+  <option value="thorn">thorn</option>
+  <option value="thorpe">thorpe</option>
+  <option value="throp">throp</option>
+  <option value="ton">ton</option>
+  <option value="tooth">tooth</option>
+  <option value="top">top</option>
+  <option value="vane">vane</option>
+  <option value="ville">ville</option>
+  <option value="wald">wald</option>
+  <option value="wark">wark</option>
+  <option value="watch">watch</option>
+  <option value="water">water</option>
+  <option value="well">well</option>
+  <option value="whistle">whistle</option>
+  <option value="wick">wick</option>
+  <option value="wood">wood</option>
+  <option value="worm">worm</option>
+  <option value="worth">worth</option>
+  <option value="worthy">worthy</option>
+</select>
+
+<select id="epithet-table" style="display:none;">
+  <option value="lazy">Lazy</option>
+  <option value="obsequious">Obsequious</option>
+  <option value="verbose">Verbose</option>
+  <option value="luckless">Luckless</option>
+  <option value="timeless">Timeless</option>
+  <option value="harmless">Harmless</option>
+  <option value="truculent">Truculent</option>
+  <option value="unfaltering">Unfaltering</option>
+  <option value="sour">Sour</option>
+  <option value="quiescent">Quiescent</option>
+  <option value="doomed">Doomed</option>
+  <option value="vile">Vile</option>
+  <option value="tactful">Tactful</option>
+  <option value="affable">Affable</option>
+  <option value="stuffy">Stuffy</option>
+  <option value="lustful">Lustful</option>
+  <option value="frugal">Frugal</option>
+  <option value="profane">Profane</option>
+  <option value="clumsy">Clumsy</option>
+  <option value="nimble">Nimble</option>
+  <option value="pale">Pale</option>
+  <option value="timeworn">Timeworn</option>
+  <option value="farsighted">Farsighted</option>
+  <option value="reckless">Reckless</option>
+  <option value="overwhelmed">Overwhelmed</option>
+  <option value="sanguine">Sanguine</option>
+  <option value="immaculate">Immaculate</option>
+  <option value="red">Red</option>
+  <option value="jumpy">Jumpy</option>
+  <option value="voiceless">Voiceless</option>
+  <option value="decrepit">Decrepit</option>
+  <option value="zealous">Zealous</option>
+  <option value="cold-hearted">Cold-Hearted</option>
+  <option value="incurable">Incurable</option>
+  <option value="bundled">Bundled</option>
+  <option value="hungry">Hungry</option>
+  <option value="thoughtful">Thoughtful</option>
+  <option value="reticent">Reticent</option>
+  <option value="flawless">Flawless</option>
+  <option value="knowing">Knowing</option>
+  <option value="humble">Humble</option>
+  <option value="impartial">Impartial</option>
+  <option value="narrow">Narrow</option>
+  <option value="eyeless">Eyeless</option>
+  <option value="diligent">Diligent</option>
+  <option value="jubilant">Jubilant</option>
+  <option value="jovial">Jovial</option>
+  <option value="worthless">Worthless</option>
+  <option value="luxurious">Luxurious</option>
+  <option value="hypnotic">Hypnotic</option>
+  <option value="unfeeling">Unfeeling</option>
+  <option value="insidious">Insidious</option>
+  <option value="ominous">Ominous</option>
+  <option value="wily">Wily</option>
+  <option value="oily">Oily</option>
+  <option value="callous">Callous</option>
+  <option value="old">Old</option>
+  <option value="gullible">Gullible</option>
+  <option value="suspicious">Suspicious</option>
+  <option value="unsuitable">Unsuitable</option>
+  <option value="laconic">Laconic</option>
+  <option value="wakeful">Wakeful</option>
+  <option value="ever-late">Ever-late</option>
+  <option value="genuflecting">Genuflecting</option>
+  <option value="serious">Serious</option>
+  <option value="unkempt">Unkempt</option>
+  <option value="ghostly">Ghostly</option>
+  <option value="idle">Idle</option>
+  <option value="hairless">Hairless</option>
+  <option value="earnest">Earnest</option>
+  <option value="ruthless">Ruthless</option>
+  <option value="guileless">Guileless</option>
+  <option value="tender">Tender</option>
+  <option value="shaky">Shaky</option>
+  <option value="jinxed">Jinxed</option>
+  <option value="unreliable">Unreliable</option>
+  <option value="strange">Strange</option>
+  <option value="penniless">Penniless</option>
+  <option value="vexing">Vexing</option>
+  <option value="quick">Quick</option>
+  <option value="malformed">Malformed</option>
+  <option value="downhearted">Downhearted</option>
+  <option value="orphaned">Orphaned</option>
+  <option value="apathetic">Apathetic</option>
+  <option value="filthy">Filthy</option>
+  <option value="tireless">Tireless</option>
+  <option value="obliging">Obliging</option>
+  <option value="loquacious">Loquacious</option>
+  <option value="tall">Tall</option>
+  <option value="numb">Numb</option>
+  <option value="sickly">Sickly</option>
+  <option value="stern">Stern</option>
+  <option value="trusting">Trusting</option>
+  <option value="three-thumbed">Three-thumbed</option>
+  <option value="faithless">Faithless</option>
+  <option value="impulsive">Impulsive</option>
+  <option value="quixotic">Quixotic</option>
+  <option value="cowardly">Cowardly</option>
+  <option value="mute">Mute</option>
+  <option value="quiet">Quiet</option>
+  <option value="forgetful">Forgetful</option>
+  <option value="gloomy">Gloomy</option>
+  <option value="petulant">Petulant</option>
+  <option value="jeweled">Jeweled</option>
+  <option value="big">Big</option>
+  <option value="innocent">Innocent</option>
+  <option value="peaceful">Peaceful</option>
+  <option value="dowdy">Dowdy</option>
+  <option value="tiny">Tiny</option>
+  <option value="underdog">Underdog</option>
+  <option value="expressionless">Expressionless</option>
+  <option value="uncaring">Uncaring</option>
+  <option value="inscrutable">Inscrutable</option>
+  <option value="prickly">Prickly</option>
+  <option value="boastful">Boastful</option>
+  <option value="odiferous">Odiferous</option>
+  <option value="icy">Icy</option>
+  <option value="dependable">Dependable</option>
+  <option value="vulgar">Vulgar</option>
+  <option value="unblushing">Unblushing</option>
+  <option value="simple">Simple</option>
+  <option value="impetuous">Impetuous</option>
+  <option value="blessed">Blessed</option>
+  <option value="remorseless">Remorseless</option>
+  <option value="cool-headed">Cool-Headed</option>
+  <option value="yawning">Yawning</option>
+  <option value="obscene">Obscene</option>
+  <option value="abiding">Abiding</option>
+  <option value="sorrowful">Sorrowful</option>
+  <option value="impatient">Impatient</option>
+  <option value="onerous">Onerous</option>
+  <option value="happy">Happy</option>
+  <option value="forsaken">Forsaken</option>
+  <option value="obstinate">Obstinate</option>
+  <option value="backstabbing">Backstabbing</option>
+  <option value="blunt">Blunt</option>
+  <option value="devious">Devious</option>
+  <option value="mysterious">Mysterious</option>
+  <option value="observant">Observant</option>
+  <option value="aching">Aching</option>
+  <option value="regal">Regal</option>
+  <option value="furious">Furious</option>
+  <option value="thankful">Thankful</option>
+  <option value="forgotten">Forgotten</option>
+  <option value="fecund">Fecund</option>
+  <option value="rueful">Rueful</option>
+  <option value="handsome">Handsome</option>
+  <option value="unlikely">Unlikely</option>
+  <option value="wise">Wise</option>
+    <option value="impossible">Impossible</option>
+  <option value="noxious">Noxious</option>
+  <option value="despondent">Despondent</option>
+  <option value="tiresome">Tiresome</option>
+  <option value="mindful">Mindful</option>
+  <option value="zestless">Zestless</option>
+  <option value="gracious">Gracious</option>
+  <option value="long-winded">Long-winded</option>
+  <option value="clueless">Clueless</option>
+  <option value="horrid">Horrid</option>
+  <option value="compassionate">Compassionate</option>
+  <option value="lecherous">Lecherous</option>
+  <option value="confident">Confident</option>
+  <option value="even-tempered">Even-Tempered</option>
+  <option value="winking">Winking</option>
+  <option value="babbling">Babbling</option>
+  <option value="perfect">Perfect</option>
+  <option value="petrified">Petrified</option>
+  <option value="raucous">Raucous</option>
+  <option value="venerable">Venerable</option>
+  <option value="mesmeric">Mesmeric</option>
+  <option value="last-born">Last-Born</option>
+  <option value="unabashed">Unabashed</option>
+  <option value="lovelorn">Lovelorn</option>
+  <option value="fragile">Fragile</option>
+  <option value="defensive">Defensive</option>
+  <option value="watchful">Watchful</option>
+  <option value="curious">Curious</option>
+  <option value="bald">Bald</option>
+  <option value="voracious">Voracious</option>
+  <option value="pigheaded">Pigheaded</option>
+  <option value="dingy">Dingy</option>
+  <option value="focused">Focused</option>
+  <option value="oblivious">Oblivious</option>
+  <option value="nosy">Nosy</option>
+  <option value="impish">Impish</option>
+  <option value="irksome">Irksome</option>
+  <option value="proud">Proud</option>
+  <option value="lesser">Lesser</option>
+  <option value="violent">Violent</option>
+  <option value="kind">Kind</option>
+  <option value="undeterred">Undeterred</option>
+  <option value="odorous">Odorous</option>
+  <option value="terrible">Terrible</option>
+  <option value="tempestuous">Tempestuous</option>
+  <option value="excitable">Excitable</option>
+  <option value="meticulous">Meticulous</option>
+  <option value="bedfast">Bedfast</option>
+  <option value="opulent">Opulent</option>
+  <option value="unpredictable">Unpredictable</option>
+  <option value="heartbroken">Heartbroken</option>
+  <option value="wrinkled">Wrinkled</option>
+  <option value="faded">Faded</option>
+  <option value="lethargic">Lethargic</option>
+  <option value="revengeful">Revengeful</option>
+  <option value="aimless">Aimless</option>
+  <option value="recumbent">Recumbent</option>
+  <option value="butter-fingered">Butter-Fingered</option>
+  <option value="bewildered">Bewildered</option>
+  <option value="valorous">Valorous</option>
+  <option value="mutinous">Mutinous</option>
+  <option value="parched">Parched</option>
+  <option value="bighearted">Bighearted</option>
+  <option value="slow">Slow</option>
+  <option value="green">Green</option>
+  <option value="bitter">Bitter</option>
+  <option value="incorrigible">Incorrigible</option>
+  <option value="garrulous">Garrulous</option>
+  <option value="abandoned">Abandoned</option>
+  <option value="oblique">Oblique</option>
+  <option value="miserly">Miserly</option>
+  <option value="dejected">Dejected</option>
+  <option value="adopted">Adopted</option>
+  <option value="callow">Callow</option>
+  <option value="truthful">Truthful</option>
+  <option value="jaundiced">Jaundiced</option>
+  <option value="chatty">Chatty</option>
+  <option value="diseased">Diseased</option>
+  <option value="idyllic">Idyllic</option>
+  <option value="calm">Calm</option>
+  <option value="wild">Wild</option>
+  <option value="queasy">Queasy</option>
+  <option value="radiant">Radiant</option>
+  <option value="determined">Determined</option>
+  <option value="senseless">Senseless</option>
+  <option value="jaded">Jaded</option>
+  <option value="swindled">Swindled</option>
+  <option value="sly">Sly</option>
+  <option value="worn">Worn</option>
+  <option value="flawed">Flawed</option>
+  <option value="unscrupulous">Unscrupulous</option>
+  <option value="weak">Weak</option>
+  <option value="embittered">Embittered</option>
+  <option value="ostentatious">Ostentatious</option>
+  <option value="spineless">Spineless</option>
+  <option value="softhearted">Softhearted</option>
+  <option value="crotchety">Crotchety</option>
+  <option value="large">Large</option>
+  <option value="underwhelmed">Underwhelmed</option>
+  <option value="wide">Wide</option>
+  <option value="amphibious">Amphibious</option>
+  <option value="foul">Foul</option>
+  <option value="deceitful">Deceitful</option>
+  <option value="ardent">Ardent</option>
+  <option value="greedy">Greedy</option>
+  <option value="silver-tongued">Silver-Tongued</option>
+  <option value="lost">Lost</option>
+  <option value="speechless">Speechless</option>
+  <option value="morose">Morose</option>
+  <option value="thirsty">Thirsty</option>
+  <option value="kingly">Kingly</option>
+  <option value="freckled">Freckled</option>
+  <option value="magnanimous">Magnanimous</option>
+  <option value="enigmatic">Enigmatic</option>
+  <option value="unbidden">Unbidden</option>
+  <option value="lonely">Lonely</option>
+  <option value="saintly">Saintly</option>
+  <option value="deformed">Deformed</option>
+  <option value="bellicose">Bellicose</option>
+  <option value="fearful">Fearful</option>
+  <option value="burly">Burly</option>
+  <option value="jeering">Jeering</option>
+  <option value="forlorn">Forlorn</option>
+  <option value="emaciated">Emaciated</option>
+  <option value="wicked">Wicked</option>
+  <option value="bloody">Bloody</option>
+  <option value="cheerful">Cheerful</option>
+  <option value="guiltless">Guiltless</option>
+  <option value="lucky">Lucky</option>
+  <option value="corpulent">Corpulent</option>
+  <option value="jolly">Jolly</option>
+  <option value="unsteady">Unsteady</option>
+  <option value="haggard">Haggard</option>
+  <option value="little">Little</option>
+  <option value="complacent">Complacent</option>
+  <option value="envious">Envious</option>
+  <option value="mended">Mended</option>
+  <option value="intrepid">Intrepid</option>
+  <option value="homely">Homely</option>
+  <option value="ignored">Ignored</option>
+  <option value="tranquil">Tranquil</option>
+  <option value="chivalrous">Chivalrous</option>
+  <option value="loyal">Loyal</option>
+  <option value="generous">Generous</option>
+  <option value="stoic">Stoic</option>
+  <option value="mercurial">Mercurial</option>
+  <option value="blue">Blue</option>
+  <option value="demanding">Demanding</option>
+  <option value="dim">Dim</option>
+  <option value="hopeful">Hopeful</option>
+  <option value="hurt">Hurt</option>
+  <option value="severed">Severed</option>
+  <option value="beautiful">Beautiful</option>
+  <option value="arrogant">Arrogant</option>
+  <option value="fickle">Fickle</option>
+  <option value="inexorable">Inexorable</option>
+  <option value="worried">Worried</option>
+  <option value="courageous">Courageous</option>
+  <option value="famished">Famished</option>
+  <option value="cheeky">Cheeky</option>
+  <option value="encumbered">Encumbered</option>
+  <option value="knavish">Knavish</option>
+  <option value="unrelenting">Unrelenting</option>
+  <option value="forgetting">Forgetting</option>
+  <option value="wronged">Wronged</option>
+  <option value="agitated">Agitated</option>
+  <option value="blighted">Blighted</option>
+  <option value="dispossessed">Dispossessed</option>
+  <option value="inconsolable">Inconsolable</option>
+  <option value="nameless">Nameless</option>
+  <option value="grumpy">Grumpy</option>
+  <option value="itchy">Itchy</option>
+  <option value="belligerent">Belligerent</option>
+  <option value="unconscious">Unconscious</option>
+  <option value="grieving">Grieving</option>
+  <option value="gleeful">Gleeful</option>
+  <option value="perplexed">Perplexed</option>
+  <option value="stormy">Stormy</option>
+  <option value="imposing">Imposing</option>
+  <option value="innumerable">Innumerable</option>
+  <option value="shivering">Shivering</option>
+  <option value="serene">Serene</option>
+  <option value="unknowing">Unknowing</option>
+  <option value="angry">Angry</option>
+  <option value="gibbering">Gibbering</option>
+  <option value="enduring">Enduring</option>
+  <option value="miraculous">Miraculous</option>
+  <option value="vivid">Vivid</option>
+  <option value="cracked">Cracked</option>
+  <option value="innocuous">Innocuous</option>
+  <option value="dense">Dense</option>
+  <option value="jaunty">Jaunty</option>
+  <option value="companionable">Companionable</option>
+  <option value="keen">Keen</option>
+  <option value="fiery">Fiery</option>
+  <option value="uncomely">Uncomely</option>
+  <option value="unlucky">Unlucky</option>
+  <option value="mighty">Mighty</option>
+  <option value="irritable">Irritable</option>
+  <option value="squalid">Squalid</option>
+  <option value="panicked">Panicked</option>
+  <option value="broken">Broken</option>
+  <option value="insane">Insane</option>
+  <option value="frightened">Frightened</option>
+  <option value="devout">Devout</option>
+  <option value="benevolent">Benevolent</option>
+  <option value="foolhardy">Foolhardy</option>
+  <option value="incisive">Incisive</option>
+  <option value="musical">Musical</option>
+  <option value="lazy-eyed">Lazy-Eyed</option>
+  <option value="fearless">Fearless</option>
+  <option value="bearded">Bearded</option>
+  <option value="clever">Clever</option>
+  <option value="bony">Bony</option>
+  <option value="mad">Mad</option>
+  <option value="lonesome">Lonesome</option>
+  <option value="malicious">Malicious</option>
+  <option value="round">Round</option>
+  <option value="alert">Alert</option>
+  <option value="mournful">Mournful</option>
+  <option value="moaning">Moaning</option>
+  <option value="ailing">Ailing</option>
+  <option value="bored">Bored</option>
+  <option value="restless">Restless</option>
+  <option value="insubordinate">Insubordinate</option>
+  <option value="red-nosed">Red-Nosed</option>
+  <option value="vigilant">Vigilant</option>
+  <option value="precise">Precise</option>
+  <option value="lithe">Lithe</option>
+  <option value="desperate">Desperate</option>
+  <option value="florid">Florid</option>
+  <option value="heartless">Heartless</option>
+  <option value="infamous">Infamous</option>
+  <option value="plucky">Plucky</option>
+  <option value="deserted">Deserted</option>
+  <option value="contrary">Contrary</option>
+  <option value="firm">Firm</option>
+  <option value="disheveled">Disheveled</option>
+  <option value="vindictive">Vindictive</option>
+  <option value="victorious">Victorious</option>
+  <option value="bemused">Bemused</option>
+  <option value="wandering">Wandering</option>
+  <option value="heroic">Heroic</option>
+  <option value="half-witted">Half-Witted</option>
+  <option value="trustworthy">Trustworthy</option>
+  <option value="pious">Pious</option>
+  <option value="dead">Dead</option>
+  <option value="illiterate">Illiterate</option>
+  <option value="irascible">Irascible</option>
+  <option value="silent">Silent</option>
+  <option value="rapacious">Rapacious</option>
+  <option value="kindhearted">Kindhearted</option>
+  <option value="charming">Charming</option>
+  <option value="rabid">Rabid</option>
+  <option value="brutal">Brutal</option>
+  <option value="indulgent">Indulgent</option>
+  <option value="enraged">Enraged</option>
+  <option value="thieving">Thieving</option>
+  <option value="impractical">Impractical</option>
+  <option value="energetic">Energetic</option>
+  <option value="repentant">Repentant</option>
+  <option value="craven">Craven</option>
+  <option value="hungry-eyed">Hungry-Eyed</option>
+  <option value="ghastly">Ghastly</option>
+  <option value="bitter-tongued">Bitter-Tongued</option>
+  <option value="piteous">Piteous</option>
+  <option value="blind">Blind</option>
+  <option value="stooped">Stooped</option>
+  <option value="vain">Vain</option>
+  <option value="shrewd">Shrewd</option>
+  <option value="ill-favored">Ill-Favored</option>
+  <option value="graceful">Graceful</option>
+  <option value="rash">Rash</option>
+  <option value="disdainful">Disdainful</option>
+  <option value="untiring">Untiring</option>
+  <option value="hapless">Hapless</option>
+  <option value="forgettable">Forgettable</option>
+  <option value="ignorant">Ignorant</option>
+  <option value="dour">Dour</option>
+  <option value="distracted">Distracted</option>
+  <option value="staunch">Staunch</option>
+  <option value="reckoned">Reckoned</option>
+  <option value="craven">Craven</option>
+  <option value="willful">Willful</option>
+  <option value="splendid">Splendid</option>
+  <option value="faded">Faded</option>
+  </select>
 
     <select id="name-table" style="display:none;">
-    <option value="Male: Alaric">Male: Alaric</option>
-    <option value="Male: Aldous">Male: Aldous</option>
-    <option value="Male: Alton">Male: Alton</option>
-    <option value="Male: Archibald">Male: Archibald</option>
-    <option value="Male: Arne">Male: Arne</option>
-    <option value="Male: Arthur">Male: Arthur</option>
-    <option value="Male: Balthazar">Male: Balthazar</option>
-    <option value="Male: Bard">Male: Bard</option>
-    <option value="Male: Bartholomew">Male: Bartholomew</option>
-    <option value="Male: Bartlett">Male: Bartlett</option>
-    <option value="Male: Basil">Male: Basil</option>
-    <option value="Male: Baxton">Male: Baxton</option>
-    <option value="Male: Benedict">Male: Benedict</option>
-    <option value="Male: Bennett">Male: Bennett</option>
-    <option value="Male: Beorn">Male: Beorn</option>
-    <option value="Male: Bertram">Male: Bertram</option>
-    <option value="Male: Burchard">Male: Burchard</option>
-    <option value="Male: Cadman">Male: Cadman</option>
-    <option value="Male: Caspian">Male: Caspian</option>
-    <option value="Male: Chadwick">Male: Chadwick</option>
-    <option value="Male: Clovis">Male: Clovis</option>
-    <option value="Male: Conrad">Male: Conrad</option>
-    <option value="Male: Corbett">Male: Corbett</option>
-    <option value="Male: Crispin">Male: Crispin</option>
-    <option value="Male: Cyprian">Male: Cyprian</option>
-    <option value="Male: Cyrus">Male: Cyrus</option>
-    <option value="Male: Daegal">Male: Daegal</option>
-    <option value="Male: Denis">Male: Denis</option>
-    <option value="Male: Destrian">Male: Destrian</option>
-    <option value="Male: Drogo">Male: Drogo</option>
-    <option value="Male: Eldon">Male: Eldon</option>
-    <option value="Male: Ellis">Male: Ellis</option>
-    <option value="Male: Elric">Male: Elric</option>
-    <option value="Male: Emil">Male: Emil</option>
-    <option value="Male: Erasmus">Male: Erasmus</option>
-    <option value="Male: Faustus">Male: Faustus</option>
-    <option value="Male: Felix">Male: Felix</option>
-    <option value="Male: Finn">Male: Finn</option>
-    <option value="Male: Finnian">Male: Finnian</option>
-    <option value="Male: Fitzhugh">Male: Fitzhugh</option>
-    <option value="Male: Florian">Male: Florian</option>
-    <option value="Male: Fox">Male: Fox</option>
-    <option value="Male: Galileo">Male: Galileo</option>
-    <option value="Male: Giles">Male: Giles</option>
-    <option value="Male: Godfrey">Male: Godfrey</option>
-    <option value="Male: Godwin">Male: Godwin</option>
-    <option value="Male: Grimwald">Male: Grimwald</option>
-    <option value="Male: Hamlin">Male: Hamlin</option>
-    <option value="Male: Hannibal">Male: Hannibal</option>
-    <option value="Male: Hildebrand">Male: Hildebrand</option>
-    <option value="Male: Jasper">Male: Jasper</option>
-    <option value="Male: Jeremiah">Male: Jeremiah</option>
-    <option value="Male: Johan">Male: Johan</option>
-    <option value="Male: Jules">Male: Jules</option>
-    <option value="Male: Kenric">Male: Kenric</option>
-    <option value="Male: Leif">Male: Leif</option>
-    <option value="Male: Leopold">Male: Leopold</option>
-    <option value="Male: Leoric">Male: Leoric</option>
-    <option value="Male: Lothar">Male: Lothar</option>
-    <option value="Male: Lucian">Male: Lucian</option>
-    <option value="Male: Merrick">Male: Merrick</option>
-    <option value="Male: Milo">Male: Milo</option>
-    <option value="Male: Mordred">Male: Mordred</option>
-    <option value="Male: Mortimer">Male: Mortimer</option>
-    <option value="Male: Neville">Male: Neville</option>
-    <option value="Male: Odel">Male: Odel</option>
-    <option value="Male: Ogden">Male: Ogden</option>
-    <option value="Male: Orion">Male: Orion</option>
-    <option value="Male: Orvyn">Male: Orvyn</option>
-    <option value="Male: Osric">Male: Osric</option>
-    <option value="Male: Oswald">Male: Oswald</option>
-    <option value="Male: Paschal">Male: Paschal</option>
-    <option value="Male: Percival">Male: Percival</option>
-    <option value="Male: Peregrine">Male: Peregrine</option>
-    <option value="Male: Piers">Male: Piers</option>
-    <option value="Male: Quentin">Male: Quentin</option>
-    <option value="Male: Randolf">Male: Randolf</option>
-    <option value="Male: Redmaine">Male: Redmaine</option>
-    <option value="Male: Reinhold">Male: Reinhold</option>
-    <option value="Male: Rex">Male: Rex</option>
-    <option value="Male: Ricard">Male: Ricard</option>
-    <option value="Male: Roland">Male: Roland</option>
-    <option value="Male: Rufus">Male: Rufus</option>
-    <option value="Male: Silas">Male: Silas</option>
-    <option value="Male: Stilton">Male: Stilton</option>
-    <option value="Male: Stratford">Male: Stratford</option>
-    <option value="Male: Sylvio">Male: Sylvio</option>
-    <option value="Male: Tenpiece">Male: Tenpiece</option>
-    <option value="Male: Thaddeus">Male: Thaddeus</option>
-    <option value="Male: Torsten">Male: Torsten</option>
-    <option value="Male: Tristan">Male: Tristan</option>
-    <option value="Male: Urban">Male: Urban</option>
-    <option value="Male: Valentin">Male: Valentin</option>
-    <option value="Male: Valerian">Male: Valerian</option>
-    <option value="Male: Virgil">Male: Virgil</option>
-    <option value="Male: Warrick">Male: Warrick</option>
-    <option value="Male: Waverly">Male: Waverly</option>
-    <option value="Male: Webster">Male: Webster</option>
-    <option value="Male: Wilkin">Male: Wilkin</option>
-    <option value="Male: Wymond">Male: Wymond</option>
-    <option value="Female: Adelaide">Female: Adelaide</option>
-    <option value="Female: Agnes">Female: Agnes</option>
-    <option value="Female: Alma">Female: Alma</option>
-    <option value="Female: Anastasia">Female: Anastasia</option>
-    <option value="Female: Anika">Female: Anika</option>
-    <option value="Female: Annora">Female: Annora</option>
-    <option value="Female: Astrid">Female: Astrid</option>
-    <option value="Female: Barsaba">Female: Barsaba</option>
-    <option value="Female: Beatrix">Female: Beatrix</option>
-    <option value="Female: Bethel">Female: Bethel</option>
-    <option value="Female: Bianca">Female: Bianca</option>
-    <option value="Female: Blanche">Female: Blanche</option>
-    <option value="Female: Bodil">Female: Bodil</option>
-    <option value="Female: Bridget">Female: Bridget</option>
-    <option value="Female: Brunhilde">Female: Brunhilde</option>
-    <option value="Female: Calypso">Female: Calypso</option>
-    <option value="Female: Catalina">Female: Catalina</option>
-    <option value="Female: Cecilia">Female: Cecilia</option>
-    <option value="Female: Celeste">Female: Celeste</option>
-    <option value="Female: Charlotte">Female: Charlotte</option>
-    <option value="Female: Cleopha">Female: Cleopha</option>
-    <option value="Female: Clotilde">Female: Clotilde</option>
-    <option value="Female: Clover">Female: Clover</option>
-    <option value="Female: Colette">Female: Colette</option>
-    <option value="Female: Constance">Female: Constance</option>
-    <option value="Female: Damaris">Female: Damaris</option>
-    <option value="Female: Daphne">Female: Daphne</option>
-    <option value="Female: Demona">Female: Demona</option>
-    <option value="Female: Desirae">Female: Desirae</option>
-    <option value="Female: Ella">Female: Ella</option>
-    <option value="Female: Elsbeth">Female: Elsbeth</option>
-    <option value="Female: Esme">Female: Esme</option>
-    <option value="Female: Eulalia">Female: Eulalia</option>
-    <option value="Female: Euphemia">Female: Euphemia</option>
-    <option value="Female: Eydis">Female: Eydis</option>
-    <option value="Female: Fern">Female: Fern</option>
-    <option value="Female: Fiora">Female: Fiora</option>
-    <option value="Female: Fleur">Female: Fleur</option>
-    <option value="Female: Florence">Female: Florence</option>
-    <option value="Female: Francesca">Female: Francesca</option>
-    <option value="Female: Gertrude">Female: Gertrude</option>
-    <option value="Female: Giselle">Female: Giselle</option>
-    <option value="Female: Godiva">Female: Godiva</option>
-    <option value="Female: Guinevere">Female: Guinevere</option>
-    <option value="Female: Heloise">Female: Heloise</option>
-    <option value="Female: Henrietta">Female: Henrietta</option>
-    <option value="Female: Hester">Female: Hester</option>
-    <option value="Female: Hippolyta">Female: Hippolyta</option>
-    <option value="Female: Honora">Female: Honora</option>
-    <option value="Female: Imogene">Female: Imogene</option>
-    <option value="Female: Ingrid">Female: Ingrid</option>
-    <option value="Female: Ione">Female: Ione</option>
-    <option value="Female: Iris">Female: Iris</option>
-    <option value="Female: Isabetta">Female: Isabetta</option>
-    <option value="Female: Isolde">Female: Isolde</option>
-    <option value="Female: Jacquette">Female: Jacquette</option>
-    <option value="Female: Jeanne">Female: Jeanne</option>
-    <option value="Female: Jessamine">Female: Jessamine</option>
-    <option value="Female: Jilly">Female: Jilly</option>
-    <option value="Female: Lavinia">Female: Lavinia</option>
-    <option value="Female: Lisbet">Female: Lisbet</option>
-    <option value="Female: Madelena">Female: Madelena</option>
-    <option value="Female: Margot">Female: Margot</option>
-    <option value="Female: Marian">Female: Marian</option>
-    <option value="Female: Marigold">Female: Marigold</option>
-    <option value="Female: Matilda">Female: Matilda</option>
-    <option value="Female: Melisande">Female: Melisande</option>
-    <option value="Female: Millicent">Female: Millicent</option>
-    <option value="Female: Minerva">Female: Minerva</option>
-    <option value="Female: Morgan">Female: Morgan</option>
-    <option value="Female: Nerissa">Female: Nerissa</option>
-    <option value="Female: Odette">Female: Odette</option>
-    <option value="Female: Olga">Female: Olga</option>
-    <option value="Female: Olivia">Female: Olivia</option>
-    <option value="Female: Orchid">Female: Orchid</option>
-    <option value="Female: Pepper">Female: Pepper</option>
-    <option value="Female: Petra">Female: Petra</option>
-    <option value="Female: Philomena">Female: Philomena</option>
-    <option value="Female: Phoebe">Female: Phoebe</option>
-    <option value="Female: Piety">Female: Piety</option>
-    <option value="Female: Poppy">Female: Poppy</option>
-    <option value="Female: Portia">Female: Portia</option>
-    <option value="Female: Rosalind">Female: Rosalind</option>
-    <option value="Female: Rose">Female: Rose</option>
-    <option value="Female: Sabina">Female: Sabina</option>
-    <option value="Female: Sif">Female: Sif</option>
-    <option value="Female: Sigourney">Female: Sigourney</option>
-    <option value="Female: Sigrid">Female: Sigrid</option>
-    <option value="Female: Silence">Female: Silence</option>
-    <option value="Female: Sybil">Female: Sybil</option>
-    <option value="Female: Tabitha">Female: Tabitha</option>
-    <option value="Female: Trillby">Female: Trillby</option>
-    <option value="Female: Ulfhild">Female: Ulfhild</option>
-    <option value="Female: Ursula">Female: Ursula</option>
-    <option value="Female: Vivian">Female: Vivian</option>
-    <option value="Female: Wendy">Female: Wendy</option>
-    <option value="Female: Willow">Female: Willow</option>
-    <option value="Female: Winifred">Female: Winifred</option>
-    <option value="Female: Yvette">Female: Yvette</option>
-    <option value="Female: Zora">Female: Zora</option>
+    <option value="Alaric">Alaric</option>
+    <option value="Aldous">Aldous</option>
+    <option value="Alton">Alton</option>
+    <option value="Archibald">Archibald</option>
+    <option value="Arne">Arne</option>
+    <option value="Arthur">Arthur</option>
+    <option value="Balthazar">Balthazar</option>
+    <option value="Bard">Bard</option>
+    <option value="Bartholomew">Bartholomew</option>
+    <option value="Bartlett">Bartlett</option>
+    <option value="Basil">Basil</option>
+    <option value="Baxton">Baxton</option>
+    <option value="Benedict">Benedict</option>
+    <option value="Bennett">Bennett</option>
+    <option value="Beorn">Beorn</option>
+    <option value="Bertram">Bertram</option>
+    <option value="Burchard">Burchard</option>
+    <option value="Cadman">Cadman</option>
+    <option value="Caspian">Caspian</option>
+    <option value="Chadwick">Chadwick</option>
+    <option value="Clovis">Clovis</option>
+    <option value="Conrad">Conrad</option>
+    <option value="Corbett">Corbett</option>
+    <option value="Crispin">Crispin</option>
+    <option value="Cyprian">Cyprian</option>
+    <option value="Cyrus">Cyrus</option>
+    <option value="Daegal">Daegal</option>
+    <option value="Denis">Denis</option>
+    <option value="Destrian">Destrian</option>
+    <option value="Drogo">Drogo</option>
+    <option value="Eldon">Eldon</option>
+    <option value="Ellis">Ellis</option>
+    <option value="Elric">Elric</option>
+    <option value="Emil">Emil</option>
+    <option value="Erasmus">Erasmus</option>
+    <option value="Faustus">Faustus</option>
+    <option value="Felix">Felix</option>
+    <option value="Finn">Finn</option>
+    <option value="Finnian">Finnian</option>
+    <option value="Fitzhugh">Fitzhugh</option>
+    <option value="Florian">Florian</option>
+    <option value="Fox">Fox</option>
+    <option value="Galileo">Galileo</option>
+    <option value="Giles">Giles</option>
+    <option value="Godfrey">Godfrey</option>
+    <option value="Godwin">Godwin</option>
+    <option value="Grimwald">Grimwald</option>
+    <option value="Hamlin">Hamlin</option>
+    <option value="Hannibal">Hannibal</option>
+    <option value="Hildebrand">Hildebrand</option>
+    <option value="Jasper">Jasper</option>
+    <option value="Jeremiah">Jeremiah</option>
+    <option value="Johan">Johan</option>
+    <option value="Jules">Jules</option>
+    <option value="Kenric">Kenric</option>
+    <option value="Leif">Leif</option>
+    <option value="Leopold">Leopold</option>
+    <option value="Leoric">Leoric</option>
+    <option value="Lothar">Lothar</option>
+    <option value="Lucian">Lucian</option>
+    <option value="Merrick">Merrick</option>
+    <option value="Milo">Milo</option>
+    <option value="Mordred">Mordred</option>
+    <option value="Mortimer">Mortimer</option>
+    <option value="Neville">Neville</option>
+    <option value="Odel">Odel</option>
+    <option value="Ogden">Ogden</option>
+    <option value="Orion">Orion</option>
+    <option value="Orvyn">Orvyn</option>
+    <option value="Osric">Osric</option>
+    <option value="Oswald">Oswald</option>
+    <option value="Paschal">Paschal</option>
+    <option value="Percival">Percival</option>
+    <option value="Peregrine">Peregrine</option>
+    <option value="Piers">Piers</option>
+    <option value="Quentin">Quentin</option>
+    <option value="Randolf">Randolf</option>
+    <option value="Redmaine">Redmaine</option>
+    <option value="Reinhold">Reinhold</option>
+    <option value="Rex">Rex</option>
+    <option value="Ricard">Ricard</option>
+    <option value="Roland">Roland</option>
+    <option value="Rufus">Rufus</option>
+    <option value="Silas">Silas</option>
+    <option value="Stilton">Stilton</option>
+    <option value="Stratford">Stratford</option>
+    <option value="Sylvio">Sylvio</option>
+    <option value="Tenpiece">Tenpiece</option>
+    <option value="Thaddeus">Thaddeus</option>
+    <option value="Torsten">Torsten</option>
+    <option value="Tristan">Tristan</option>
+    <option value="Urban">Urban</option>
+    <option value="Valentin">Valentin</option>
+    <option value="Valerian">Valerian</option>
+    <option value="Virgil">Virgil</option>
+    <option value="Warrick">Warrick</option>
+    <option value="Waverly">Waverly</option>
+    <option value="Webster">Webster</option>
+    <option value="Wilkin">Wilkin</option>
+    <option value="Wymond">Wymond</option>
+    <option value="Adelaide">Adelaide</option>
+    <option value="Agnes">Agnes</option>
+    <option value="Alma">Alma</option>
+    <option value="Anastasia">Anastasia</option>
+    <option value="Anika">Anika</option>
+    <option value="Annora">Annora</option>
+    <option value="Astrid">Astrid</option>
+    <option value="Barsaba">Barsaba</option>
+    <option value="Beatrix">Beatrix</option>
+    <option value="Bethel">Bethel</option>
+    <option value="Bianca">Bianca</option>
+    <option value="Blanche">Blanche</option>
+    <option value="Bodil">Bodil</option>
+    <option value="Bridget">Bridget</option>
+    <option value="Brunhilde">Brunhilde</option>
+    <option value="Calypso">Calypso</option>
+    <option value="Catalina">Catalina</option>
+    <option value="Cecilia">Cecilia</option>
+    <option value="Celeste">Celeste</option>
+    <option value="Charlotte">Charlotte</option>
+    <option value="Cleopha">Cleopha</option>
+    <option value="Clotilde">Clotilde</option>
+    <option value="Clover">Clover</option>
+    <option value="Colette">Colette</option>
+    <option value="Constance">Constance</option>
+    <option value="Damaris">Damaris</option>
+    <option value="Daphne">Daphne</option>
+    <option value="Demona">Demona</option>
+    <option value="Desirae">Desirae</option>
+    <option value="Ella">Ella</option>
+    <option value="Elsbeth">Elsbeth</option>
+    <option value="Esme">Esme</option>
+    <option value="Eulalia">Eulalia</option>
+    <option value="Euphemia">Euphemia</option>
+    <option value="Eydis">Eydis</option>
+    <option value="Fern">Fern</option>
+    <option value="Fiora">Fiora</option>
+    <option value="Fleur">Fleur</option>
+    <option value="Florence">Florence</option>
+    <option value="Francesca">Francesca</option>
+    <option value="Gertrude">Gertrude</option>
+    <option value="Giselle">Giselle</option>
+    <option value="Godiva">Godiva</option>
+    <option value="Guinevere">Guinevere</option>
+    <option value="Heloise">Heloise</option>
+    <option value="Henrietta">Henrietta</option>
+    <option value="Hester">Hester</option>
+    <option value="Hippolyta">Hippolyta</option>
+    <option value="Honora">Honora</option>
+    <option value="Imogene">Imogene</option>
+    <option value="Ingrid">Ingrid</option>
+    <option value="Ione">Ione</option>
+    <option value="Iris">Iris</option>
+    <option value="Isabetta">Isabetta</option>
+    <option value="Isolde">Isolde</option>
+    <option value="Jacquette">Jacquette</option>
+    <option value="Jeanne">Jeanne</option>
+    <option value="Jessamine">Jessamine</option>
+    <option value="Jilly">Jilly</option>
+    <option value="Lavinia">Lavinia</option>
+    <option value="Lisbet">Lisbet</option>
+    <option value="Madelena">Madelena</option>
+    <option value="Margot">Margot</option>
+    <option value="Marian">Marian</option>
+    <option value="Marigold">Marigold</option>
+    <option value="Matilda">Matilda</option>
+    <option value="Melisande">Melisande</option>
+    <option value="Millicent">Millicent</option>
+    <option value="Minerva">Minerva</option>
+    <option value="Morgan">Morgan</option>
+    <option value="Nerissa">Nerissa</option>
+    <option value="Odette">Odette</option>
+    <option value="Olga">Olga</option>
+    <option value="Olivia">Olivia</option>
+    <option value="Orchid">Orchid</option>
+    <option value="Pepper">Pepper</option>
+    <option value="Petra">Petra</option>
+    <option value="Philomena">Philomena</option>
+    <option value="Phoebe">Phoebe</option>
+    <option value="Piety">Piety</option>
+    <option value="Poppy">Poppy</option>
+    <option value="Portia">Portia</option>
+    <option value="Rosalind">Rosalind</option>
+    <option value="Rose">Rose</option>
+    <option value="Sabina">Sabina</option>
+    <option value="Sif">Sif</option>
+    <option value="Sigourney">Sigourney</option>
+    <option value="Sigrid">Sigrid</option>
+    <option value="Silence">Silence</option>
+    <option value="Sybil">Sybil</option>
+    <option value="Tabitha">Tabitha</option>
+    <option value="Trillby">Trillby</option>
+    <option value="Ulfhild">Ulfhild</option>
+    <option value="Ursula">Ursula</option>
+    <option value="Vivian">Vivian</option>
+    <option value="Wendy">Wendy</option>
+    <option value="Willow">Willow</option>
+    <option value="Winifred">Winifred</option>
+    <option value="Yvette">Yvette</option>
+    <option value="Zora">Zora</option>
     </select>
+  
     <select id="personality-table" style="display:none;">
     <option value="Always bored">Always bored</option>
     <option value="Anxious">Anxious</option>
@@ -792,7 +1707,7 @@ Mannerisms: ${mannerisms}
     <option value="Righteous">Righteous</option>
     <option value="Rigid discipline">Rigid discipline</option>
     <option value="Ruthless">Ruthless</option>
-    <option value="Sadist">Sadist</option>
+    <option value="*****">*****</option>
     <option value="Sarcastic">Sarcastic</option>
     <option value="Self-pitying">Self-pitying</option>
     <option value="Serene">Serene</option>
@@ -916,17 +1831,107 @@ Mannerisms: ${mannerisms}
     <option value="Wiry">Wiry</option>
     <option value="Wispy hair">Wispy hair</option>
     </select>
-    <select id="height-table" style="display:none;">
-        <option value="4'6">4'6"</option>
-        <option value="5'0">5'0"</option>
-        <option value="5'5">5'5"</option>
-        <option value="6'0">6'0"</option>
-        <option value="6'5">6'5"</option>
-        <option value="7'0">7'0"</option>
-        <option value="3'6">3'6"</option>
-        <option value="4'0">4'0"</option>
-        <option value="4'3">4'3"</option>
-        <option value="5'8">5'8"</option>
+    <select id="premade-spells-table" style="display:none;">
+  <option value="1">1 Adhere: Objects become sticky enough to hold a PC to a ceiling. Lasts until washed.</option>
+  <option value="2">2 Animal Friendship: Animals obey your orders as well as a trained dog for one day.</option>
+  <option value="3">3 Animate Object: Objects obey your orders. They move 15’ per round.</option>
+  <option value="4">4 Anthropomorphize: Animals gain human intelligence for one day.</option>
+  <option value="5">5 Arcane Eye: You create a magic eye that flies around under your control for INT turns. You can see through it as well as your normal eyes.</option>
+  <option value="6">6 Astral Prison: An object is frozen in time and space within an invulnerable crystal shell for INT turns.</option>
+  <option value="7">7 Attract: INT + 1 objects are strongly magnetically attracted to each other if they come within 10’.</option>
+  <option value="8">8 Auditory Illusion: You can create illusory sounds that seem to come from INT directions of your choice.</option>
+  <option value="9">9 Babble: INT creatures must loudly and clearly repeat everything you think. They are otherwise mute.</option>
+  <option value="10">10 Beast Form: You and your possessions turn into an animal for up to INT days.</option>
+  <option value="11">11 Befuddle: A creature is unable to form short-term memories for INT turns.</option>
+  <option value="12">12 Bend Fate: Roll INT + 1 d20s. After this point, when any creature you can see makes a check, use and discard one of the rolled results until they are all gone.</option>
+  <option value="13">13 Body Swap: You switch bodies with a creature you touch for INT turns. If one body dies, the other dies as well.</option>
+  <option value="14">14 Catherine: A woman wearing a blue dress appears for INT hours. She will obey polite, safe requests.</option>
+  <option value="15">15 Charm: INT humanoids believe they are close friends with you until proven otherwise.</option>
+  <option value="16">16 Command: A creature obeys a single, INT-word command that doesn’t harm it.</option>
+  <option value="17">17 Comprehend: You are fluent in all languages for INT hours.</option>
+  <option value="18">18 Control Plants: Plants within INT × 10’ obey you. They move 5’ per round.</option>
+  <option value="19">19 Control Weather: You control your hex’s weather for INT hours.</option>
+  <option value="20">20 Detect Magic: Anything magical within line of sight glows and reveals its properties on request. Lasts 1 day or until you make INT requests.</option>
+  <option value="21">21 Disassemble: INT body parts may be detached at will. You can still control them. Lasts until they are reattached.</option>
+  <option value="22">22 Disguise: You may alter the look of INT humanoids as long as they remain humanoid. Lasts until the subjects speak.</option>
+  <option value="23">23 Displace: An object appears to be up to INT × 10’ from its actual position.</option>
+  <option value="24">24 Duplicate: Create INT fragile, porcelain copies of items you can see.</option>
+  <option value="25">25 Earthquake: The ground shakes violently for INT rounds.</option>
+  <option value="26">26 Elasticity: Your body can stretch up to INT × 10’.</option>
+  <option value="27">27 Elemental Wall: Creates a wall of ice or fire INT × 40’ long, 5’ wide and 10’ tall. The wall can curve however you want.</option>
+  <option value="28">28 Filch: INT visible items teleport to your hands.</option>
+  <option value="29">29 Fog Cloud: Fog spreads out in a INT × 10’ radius from you. Fades in one turn.</option>
+  <option value="30">30 Gravity Shift: INT creatures can alter their “down” direction at will.</option>
+  <option value="31">31 Greed: INT creatures become obsessed with possessing a visible item.</option>
+  <option value="32">32 Haste: INT creatures have their movement speed tripled.</option>
+  <option value="33">33 Hatred: INT creatures start attacking each other for one turn or until one dies.</option>
+  <option value="34">34 Hear Whispers: A creature can hear all sounds up to 120’ away for INT turns.</option>
+  <option value="35">35 Hover: Make INT objects hover 2’ above the ground, frictionless. They can support the weight of up to INT people.</option>
+  <option value="36">36 Hypnotize: A creature enters a trance and will answer INT yes or no questions.</option>
+  <option value="37">37 Icy Touch: An ice layer spreads across a surface, up to INT × 10’ in radius.</option>
+  <option value="38">38 Increase Gravity: The gravity within INT × 10’ of you triples.</option>
+  <option value="39">39 Invisible Tether: INT objects within 10’ of each other cannot be moved more than 10’ apart from each other.</option>
+  <option value="40">40 Knock: INT locks unlock.</option>
+  <option value="41">41 Leap: You can jump up to INT × 10’.</option>
+  <option value="42">42 Liquid Air: The air within INT × 10’ of you becomes swimmable.</option>
+  <option value="43">43 Lock: A door cannot be opened by mundane means for INT turns.</option>
+  <option value="44">44 Magic Suppressor: All magic is nullified while within INT × 10’ of you.</option>
+  <option value="45">45 Manse: A furnished house with INT rooms appears for 1 day. It has no food or gear and does not count as a safe haven.</option>
+  <option value="46">46 Marble Madness: Your pockets refill with marbles every round for INT rounds.</option>
+  <option value="47">47 Masquerade: All creatures within INT × 10’ of you are compelled to dance.</option>
+  <option value="48">48 Miniaturize: You and INT other touched creatures become mouse-sized.</option>
+  <option value="49">49 Mirror Image: INT illusory copies of you, under your control, appear.</option>
+  <option value="50">50 Mirrorwalk: A mirror becomes a gate to another mirror you touched today.</option>
+  <option value="51">51 Multiarm: You gain INT extra arms.</option>
+  <option value="52">52 Night Sphere: An INT × 40’ wide sphere of total darkness appears.</option>
+  <option value="53">53 Objectify: INT willing creatures become inanimate, immobile objects of your choice for as long as they wish. They can still hear and see.</option>
+  <option value="54">54 Ooze Form: Your body and gear become living slime for INT turns.</option>
+  <option value="55">55 Pacify: INT creatures develop an intense hatred of violence unless attacked.</option>
+  <option value="56">56 Phantom Coach: A coach scoops up INT creatures (who are outdoors) and deposits them in a random adjacent hex.</option>
+  <option value="57">57 Phobia: INT creatures become terrified of an object.</option>
+  <option value="58">58 Pit: A pit 10’ wide and INT × 10’ deep opens in the ground.</option>
+  <option value="59">59 Primeval Surge: An object grows to the size of an elephant for INT turns. If it is a creature, it is enraged.</option>
+  <option value="60">60 Psychometry: The GM answers INT yes or no questions about an object.</option>
+  <option value="61">61 Pull: An object of any size is pulled directly towards you with the force of INT men for one round.</option>
+  <option value="62">62 Push: An object of any size is pushed directly away from you with the force of INT men for one round.</option>
+  <option value="63">63 Raise Dead: INT unarmed skeletons rise from the ground to serve you.</option>
+  <option value="64">64 Read Mind: You can hear the surface thoughts of creatures for INT turns.</option>
+  <option value="65">65 Repel: INT + 1 objects are strongly magnetically repelled from each other if they come within 10’.</option>
+  <option value="66">66 Scry: You can share the vision of a creature you touched today for INT turns.</option>
+  <option value="67">67 Sculpt Elements: Inanimate material acts like clay in your hands for INT turns.</option>
+  <option value="68">68 Shroud: INT creatures are invisible for as long as they can hold their breath (CON × 3 rounds).</option>
+  <option value="69">69 Shuffle: INT creatures switch places randomly.</option>
+  <option value="70">70 Silence: All sound is deadened within 10’ of you for INT turns.</option>
+  <option value="71">71 Sleep: INT creatures fall asleep.</option>
+  <option value="72">72 Smoke Form: Your body and gear become living smoke for INT turns.</option>
+  <option value="73">73 Snail Knight: In 10 minutes, a knight atop a giant snail rides into view. He may aid you for INT days if he finds you worthy. The snail cannot move faster than a walk.</option>
+  <option value="74">74 Sniff: A creature can smell all scents up to 120’ away for INT turns.</option>
+  <option value="75">75 Sort: Inanimate items sort themselves according to INT categories you set. The categories must be visually verifiable.</option>
+  <option value="76">76 Speak With Dead: The spirit of a touched dead body appears and will answer INT questions (if it can).</option>
+  <option value="77">77 Spectacle: A clearly unreal illusion appears under your control for INT days. It may be up to the size of a palace and has full motion and sound.</option>
+  <option value="78">78 Spellseize: Cast this as a reaction to another spell of level INT or less being cast to make a temporary copy of it that you can cast within 1 day.</option>
+  <option value="79">79 Spider Climb: You can climb surfaces like a spider for INT turns.</option>
+  <option value="80">80 Summon Cube: You may summon or banish a 5’ cube of earth 5 times per round for INT rounds. Cubes must be affixed to the earth or to other cubes.</option>
+  <option value="81">81 Summon Idol: A carved stone statue up to INT × 10’ tall rises from the ground.</option>
+  <option value="82">82 Swarm: You become a swarm of crows, rats, or piranhas for INT turns. You only take damage from area effects.</option>
+  <option value="83">83 Telekinesis: You may mentally manipulate items (one at a time) up to 10 feet away for INT turns.</option>
+  <option value="84">84 Telepathy: You can project your thoughts into a mind within INT hexes.</option>
+  <option value="85">85 Teleport: An object teleports to a clear patch of ground up to INT × 40’ away from its origin point.</option>
+  <option value="86">86 Thaumaturgic Anchor: An object becomes the target of every spell cast within 120’ of it for INT turns.</option>
+  <option value="87">87 Thicket: A thicket of trees and dense brush up to INT × 40’ wide sprouts up over the course of one round.</option>
+  <option value="88">88 Time Jump: An object disappears as it jumps INT turns into the future. When it returns, it destroys any matter in its space.</option>
+  <option value="89">89 Time Rush: Time within INT × 10’ of you goes 10 times faster than the rest of the world. Lasts 10 rounds (for you).</option>
+  <option value="90">90 Time Slow: Time within INT × 10’ of you goes 10 times slower than the rest of the world. Lasts 10 rounds (for you).</option>
+  <option value="91">91 Truth Sense: You can detect lies for INT hours.</option>
+  <option value="92">92 Unravel: Cast this as a reaction to another spell of level INT or less going off to nullify it.</option>
+  <option value="93">93 Upwell: A spring of seawater erupts, producing a thousand cubic feet of water per turn for INT turns.</option>
+  <option value="94">94 Vision: You create an illusory object with full motion and sound that only one creature can sense. Lasts INT turns.</option>
+  <option value="95">95 Visual Illusion: You create INT silent, immobile, illusory objects that last until they are touched.</option>
+  <option value="96">96 Ward: A silver circle 40’ across appears on the ground around you. Until you leave the circle, INT types of things that you name cannot cross it.</option>
+  <option value="97">97 Web: You can shoot INT × 40’ of strong, sticky web. Lasts until burned.</option>
+  <option value="98">98 Whirlwind: You create a vortex of air INT × 10’ wide that can deflect missiles.</option>
+  <option value="99">99 Wizard Mark: Your finger produces ulfire-colored paint for INT hours. This paint is only visible to you, and can be seen at any distance, even through objects.</option>
+  <option value="100">100 X-ray Vision: You can see through INT feet of material.</option>
     </select>
     <select id="goals-table" style="display:none;">
     <option value="Achieve holiness">Achieve holiness</option>
@@ -1235,3 +2240,4 @@ Mannerisms: ${mannerisms}
     </select>
 </body>
 </html>
+
