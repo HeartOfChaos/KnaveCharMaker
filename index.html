@@ -219,8 +219,8 @@ function rollStats() {
         rollStandardStats(level);
     } else if (method === '3d3') {
         roll3d3Stats();
-    } else if (method === '6d6') {
-        stats.forEach(stat => stat.value = rollDice(6, 6, false)[0]);  // Roll d6
+    } else if (method === '4d6') {
+        stats.forEach(stat => stat.value = rollDice(6, 4, false)[0]);  // Roll d6
     }
     updateInventory();
     document.getElementById('lvl1-int').value = document.getElementById('intelligence').value;
@@ -554,8 +554,8 @@ function getCareerItems(career) {
         <label for="stat-method">Roll Method:</label>
         <select id="stat-method">
             <option value="Standard">Standard</option>
-            <option value="3d3">3d3</option>
-            <option value="6d6">6d6</option>
+            <option value="3d3">Roll 3d3 for 3 stats, keep lowest</option>
+            <option value="4d6">Roll 4d6 for all stats, keep lowest</option>
         </select>
         <button onclick="rollStats()">Roll Stats</button>
     </div>
