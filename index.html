@@ -217,8 +217,8 @@ function rollStats() {
 
     if (method === 'Standard') {
         rollStandardStats(level);
-    } else if (method === '3d4') {
-        roll3d4Stats();
+    } else if (method === '3d3') {
+        roll3d3Stats();
     } else if (method === '6d6') {
         stats.forEach(stat => stat.value = rollDice(6, 6, false)[0]);  // Roll d6
     }
@@ -241,8 +241,8 @@ function rollStandardStats(level) {
     }
 }
 
-// Function to roll stats using the 3d4 method
-function roll3d4Stats() {
+// Function to roll stats using the 3d3 method
+function roll3d3Stats() {
     const stats = document.querySelectorAll('.stat-box input[type="number"]');
     const selectedIndices = [];
     const level = parseInt(document.getElementById('level').value);
@@ -250,12 +250,12 @@ function roll3d4Stats() {
     // Reset all stats to 0 before rolling
     stats.forEach(stat => stat.value = 0);
 
-    // Roll 3d4 for 3 randomly selected stats
+    // Roll 3d3 for 3 randomly selected stats
     while (selectedIndices.length < 3) {
         const index = Math.floor(Math.random() * stats.length);
         if (!selectedIndices.includes(index)) {
             selectedIndices.push(index);
-            stats[index].value = rollDice(4, 3, false)[0];  // Roll d4
+            stats[index].value = rollDice(3, 3, false)[0];  // Roll d4
         }
     }
     generateOutput();
@@ -554,7 +554,7 @@ function getCareerItems(career) {
         <label for="stat-method">Roll Method:</label>
         <select id="stat-method">
             <option value="Standard">Standard</option>
-            <option value="3d4">3d4</option>
+            <option value="3d3">3d3</option>
             <option value="6d6">6d6</option>
         </select>
         <button onclick="rollStats()">Roll Stats</button>
@@ -2240,4 +2240,3 @@ function getCareerItems(career) {
     </select>
 </body>
 </html>
-
