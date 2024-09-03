@@ -447,8 +447,8 @@ function generateOutput() {
     "Gambeson",
     "arm plate",
     "mail shirt",
-    "two handed weapons",
-    "one handed weapons",
+    "two-handed weapons",
+    "one-handed weapons",
     "sling",
     "bow",
     "a quiver of 20 arrows"
@@ -465,7 +465,7 @@ function generateOutput() {
 // Modify inventoryItems to capitalize and add a dash
 let formattedInventoryItems = inventoryItems.map(item => {
     return `- ${item.charAt(0).toUpperCase() + item.slice(1)}`;
-});
+});.join()
 let formattedStartingItems = startingItems.map(item => {
   return `- ${item.charAt(0).toUpperCase() + item.slice(1)}\n`;
 }).join('');
