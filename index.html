@@ -471,7 +471,7 @@ let formattedStartingItems = startingItems.map(item => {
 }).join('');
 
  // Join formatted items into a single string
-    let formattedInventoryString = formattedInventoryItems.join(', \n');
+    let formattedInventoryString = formattedInventoryItems.join('\n');
 
     // Replace __COMMA__ with actual comma
     formattedInventoryString = formattedInventoryString.replace(/__COMMA__/g, ',');
