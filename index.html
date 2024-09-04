@@ -308,7 +308,11 @@ function initializeInventory(extraItems = []) {
 
 function rollHealth() {
     const level = parseInt(document.getElementById('level').value);
-    const hp = rollDice(6, level, true);
+    const hpArray = rollDice(6, level, false);
+    while (hpArray.includes(1)) {
+      hpArray = rollDice(6, level, false)
+    }
+    hp = hpArray.reduce((acc, curr) => acc + curr, 0);
     document.getElementById('hp').value = hp;
     generateOutput();
 }
