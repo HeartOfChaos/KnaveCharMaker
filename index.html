@@ -516,6 +516,110 @@ function getCareerItems(career) {
     return [career.trim()];
 }
 
+// Spell generator 
+
+	    const spellFormula = [
+        '{Element} {Form}',
+        '{Effect} {Form}',
+        '{Effect} {Element}',
+        'The {Quality} {Element} {Form}',
+        'The {Quality} {Effect} {Form}',
+        'The {Quality} {Effect} {Element}',
+        '{WizardName}’s {Element} {Form}',
+        '{WizardName}’s {Effect} {Form}',
+        '{WizardName}’s {Effect} {Element}',
+        '{WizardName}’s {Quality} {Element} {Form}',
+        '{WizardName}’s {Quality} {Effect} {Form}',
+        '{WizardName}’s {Quality} {Effect} {Element}'
+      ];
+
+      var randomElements = {
+        Element: [
+  "Acid", "Amber", "Ash", "Beer", "Bile", "Blood", "Blossom", "Bone", "Brass", "Brimstone",
+  "Brine", "Butter", "Chalk", "Chaos", "Clay", "Cloud", "Cold", "Crystal", "Darkness", "Death",
+  "Domain (p. 33)", "Dream", "Dust", "Fabric (p. 41)", "Flame", "Flesh", "Foam", "Fog", "Food (p. 49)", "Frost",
+  "Fume", "Fungus", "Ghost", "Glass", "Glue", "Gravel", "Hail", "Heat", "Honey", "Ice",
+  "Incense", "Ink", "Iron", "Ivory", "Lava", "Lead", "Leaf", "Light", "Lightning", "Marmalade",
+  "Material (p. 42)", "Memory", "Miasma", "Moss", "Mud", "Nectar", "Oatmeal", "Obsidian", "Oil", "Paint",
+  "Paper", "Perfume", "Plague", "Poison", "Pollen", "Quicksilver", "Radiation", "Rain", "Root", "Rot",
+  "Salt", "Sand", "Sap", "Shadow", "Silk", "Slime", "Smoke", "Snow", "Soot", "Spark",
+  "Speed", "Spore", "Steam", "Stench", "Stone", "Storm", "Sugar", "Syrup", "Taffy", "Tar",
+  "Tea", "Tears", "Thorn", "Vine", "Void", "Water", "Wax", "Wind", "Wine", "Wood"
+], // example array
+        Form: [
+  "Animal (p. 64)", "Arc", "Archer", "Armor", "Arrow", "Aura", "Avalanche", "Axe", "Beacon", "Beam",
+  "Beast", "Blade", "Blast", "Blob", "Bolt", "Bubble", "Cage", "Carriage", "Chain", "Chariot",
+  "Circle", "Cloak", "Clothing (p. 40)", "Cloud", "Coil", "Colossus", "Column", "Cone", "Crown", "Cube",
+  "Disk", "Dragon", "Eye", "Fang", "Finger", "Fissure", "Fist", "Flood", "Fly", "Fountain",
+  "Gate", "Gaze", "Geyser", "Gloves", "Guardian", "Hammer", "Hand", "Hawk", "Horn", "Hound",
+  "Key", "Knife", "Knight", "Mask", "Mechanism (p. 17)", "Misc. item (p. 39)", "Monolith", "Monster (p. 61)", "Mouth", "Organ (p. 64)",
+  "Path", "Pit", "Pool", "Pulse", "Pyramid", "Ray", "Rune", "Sanctuary", "Serpent", "Servant",
+  "Shield", "Skeleton", "Skin", "Song", "Spear", "Sphere", "Spider", "Spike", "Spray", "Staff",
+  "Steed", "Storm", "Strike", "Structure (p. 11)", "Symbol (p. 33)", "Tangle", "Tool (p. 39)", "Torrent", "Touch", "Tree",
+  "Tunnel", "Vortex", "Wall", "Wave", "Weapon (p. 43)", "Web", "Wheel", "Whip", "Word", "Zone"
+],              // example array
+        WizardName: [
+  "Abrogast", "Angvar", "Armolok", "Asterwin", "Azerphon", "Barbaloff", "Boglin", "Borgarot", "Byzby", "Candula",
+  "Chalgot", "Cronibal", "Cydinax", "Darj", "Dormog", "Dregwith", "Dulzant", "Elmeer", "Eofast", "Evthalon",
+  "Felonse", "Fenundor", "Folgun", "Gelonvir", "Garzant", "Gathifex", "Gilux", "Gyodo", "Hashman", "Helkhal",
+  "Hetemtul", "Hoonai", "Ifit", "Ildefad", "Imzirian", "Irolo", "Jorkhal", "Jorphdan", "Kaldash", "Karneblin",
+  "Kirtep", "Kisdal", "Krolgo", "Leodelf", "Lexikrin", "Lestin", "Lomard", "Majdin", "Mazifant", "Melkash",
+  "Mizisto", "Mordandred", "Nazmok", "Nobtrik", "Nothry", "Noonund", "Nizmo", "Obrigal", "Ornoza", "Osrat",
+  "Otilix", "Pandelo", "Panderbal", "Perdeo", "Pevin", "Quartat", "Quasmir", "Quilian", "Quinfan", "Redrak",
+  "Roshmor", "Rudishan", "Rumalto", "Sekeen", "Sivinez", "Snilimar", "Sofnu", "Surname (p. 55)", "Tasham", "Tchamukal",
+  "Tenat", "Turminster", "Ukanel", "Umbalem", "Uneni", "Urokar", "Vanceus", "Vermulsin", "Voriel", "Wallester",
+  "Wenton", "Wiltrik", "Xedu", "Xepheran", "Xolark", "Yamorthrax", "Yandant", "Zanuptra", "Zarugaz", "Zilik"
+],           // example array
+        Quality: [
+  "Abnormal", "Abominable", "Advanced", "Ancestral", "Ancient", "Arcane", "Artful", "Baleful", "Bizarre", "Canonical",
+  "Celestial", "Cerebral", "Chaotic", "Color (p. 37)", "Cosmic", "Crafty", "Cryptic", "Curious", "Detestable", "Dismal",
+  "Dreadful", "Elder", "Eldritch", "Enigmatic", "Esoteric", "Excellent", "Exquisite", "Extraordinary", "Fantastic", "Fey",
+  "Foul", "Galactic", "Ghastly", "Grand", "Grim", "Grotesque", "Hateful", "Hideous", "Horrible", "Incomparable", "Incomprehensible",
+  "Inexplicable", "Infernal", "Ingenious", "Inscrutable", "Insidious", "Iridescent", "Jocular", "Lawful", "Legendary", "Loathsome",
+  "Magnificent", "Majestic", "Marvelous", "Masterful", "Miraculous", "Mysterious", "Noetic", "Noxious", "Odious", "Ominous",
+  "Original", "Orthodox", "Ostentatious", "Otherworldly", "Peculiar", "Pernicious", "Phenomenal", "Place trait (p. 11)", "Planar", "Planetary",
+  "Preeminent", "Primal", "Primeval", "Primordial", "Prodigious", "Psychedelic", "Remarkable", "Resplendent", "Royal", "Sacred",
+  "Scent (p. 66)", "Sinister", "Sound (p. 66)", "Splendid", "Subtle", "Superior", "Supreme", "Taste (p. 36)", "Texture (p. 36)", "True",
+  "Uncanny", "Unfathomable", "Unnatural", "Unorthodox", "Unspeakable", "Vile", "Whimsical", "Wondrous", "Wretched"
+],          // example array
+        Effect: [
+  "Absorbing", "Accelerating", "Activity (p. 19)", "Amusing", "Animating", "Armoring", "Attracting", "Avenging", "Awakening", "Banishing",
+  "Beautifying", "Bewildering", "Binding", "Blinding", "Blossoming", "Burning", "Charming", "Cleansing", "Commanding", "Communicating",
+  "Concealing", "Condemning", "Corroding", "Corrupting", "Crushing", "Darkening", "Dazzling", "Deafening", "Deciphering", "Diminishing",
+  "Disguising", "Dispelling", "Draining", "Duplicating", "Electrifying", "Emboldening", "Enraging", "Enticing", "Etherealizing", "Excruciating",
+  "Expanding", "Foreseeing", "Freezing", "Fusing", "Hardening", "Haunting", "Healing", "Identifying", "Illuminating", "Imprisoning",
+  "Infecting", "Intoxicating", "Irradiating", "Irritating", "Levitating", "Liquefying", "Maddening", "Menacing", "Mending", "Mesmerizing",
+  "Mindreading", "Mocking", "Monitoring", "Multiplying", "Mutating", "Nauseating", "Nullifying", "Pacifying", "Persuading", "Petrifying",
+  "Piercing", "Preserving", "Pummeling", "Putrefying", "Reflecting", "Refreshing", "Regenerating", "Repelling", "Retrieving", "Revealing",
+  "Saddening", "Sanctifying", "Scrying", "Sealing", "Shielding", "Silencing", "Slicing", "Spawning", "Stinging", "Strangling",
+  "Summoning", "Teleporting", "Terrifying", "Transmuting", "Trap effect (p. 28)", "Transporting", "Vaporizing", "Warding", "Wearying", "Withering"
+],           // example array
+      };
+
+      function randNumber(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function getRandomElement(arr) {
+        return arr[randNumber(0, arr.length - 1)];
+      }
+
+      function displaySpell() {
+        const formulaIndex = randNumber(0, spellFormula.length - 1);
+        let spell = spellFormula[formulaIndex];
+
+        spell = spell
+          .replace('{Element}', getRandomElement(randomElements.Element))
+          .replace('{Form}', getRandomElement(randomElements.Form))
+          .replace('{WizardName}', getRandomElement(randomElements.WizardName))
+          .replace('{Quality}', getRandomElement(randomElements.Quality))
+          .replace('{Effect}', getRandomElement(randomElements.Effect));
+
+        document.getElementById("spell-name").innerText = spell;
+      }
+
+	    
+
     </script>
 </head>
 <body>
@@ -606,6 +710,7 @@ function getCareerItems(career) {
     <input type="hidden" id="hiddenInventory" value=""/>
     <!-- Output Text Box -->
     <textarea id="output" class="output-box"></textarea>
+	<h2 style="cursor: pointer; font-size: 2em;" id="spell-name" onClick="displaySpell()">Click here to generate spell</h2>
     <!-- Random Tables -->
     <div class="button-grid">
     <div class="input-box">
